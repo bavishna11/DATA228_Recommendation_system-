@@ -9,6 +9,7 @@ Run: ``uvicorn fastapi_app:app --reload`` or ``python fastapi_app.py``
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -64,6 +65,39 @@ NEGATIVE_WORDS = frozenset(
     }
 )
 
+NEGATION_CUES = frozenset({"not", "no", "never", "none", "hardly", "barely", "scarcely"})
+
+
+def _token_polarity_hits(text_lower: str) -> tuple[int, int]:
+    """Count positive/negative hits with simple negation handling."""
+    tokens = re.findall(r"[a-z]+(?:n't)?|[.!?]", text_lower)
+    hp, hn = 0, 0
+    neg_window = 0
+    for tok in tokens:
+        if tok in {".", "!", "?"}:
+            neg_window = 0
+            continue
+        if tok in NEGATION_CUES or tok.endswith("n't"):
+            neg_window = 3
+            continue
+
+        pos_hit = any(tok.startswith(w) for w in POSITIVE_WORDS)
+        neg_hit = any(tok.startswith(w) for w in NEGATIVE_WORDS)
+        if pos_hit:
+            if neg_window > 0:
+                hn += 1
+            else:
+                hp += 1
+        if neg_hit:
+            if neg_window > 0:
+                hp += 1
+            else:
+                hn += 1
+
+        if neg_window > 0:
+            neg_window -= 1
+    return hp, hn
+
 
 def _confidence_from_positive_strength(n: int) -> float:
     if n <= 0:
@@ -80,8 +114,7 @@ def _confidence_from_negative_strength(n: int) -> float:
 
 
 def _classify_sentiment(text_lower: str) -> tuple[str, float]:
-    hp = sum(1 for w in POSITIVE_WORDS if w in text_lower)
-    hn = sum(1 for w in NEGATIVE_WORDS if w in text_lower)
+    hp, hn = _token_polarity_hits(text_lower)
     net = hp - hn
     if net > 0:
         return "Positive", _confidence_from_positive_strength(net)
