@@ -115,8 +115,28 @@ A comprehensive, interactive UI for business intelligence and user personalizati
 | **Data Source** | Hugging Face (McAuley-Lab/Amazon-Reviews-2023) |
 
 ---
+## 7. Repository layout
 
-## 7. Setup and Execution
+```
+Final_project/
+├── 01_Data_Ingestion_and_EDA.ipynb
+├── 02_Data_Preprocessing_and_Optimization.ipynb
+├── 03_Feature_Engineering_Pipeline.ipynb
+├── 04_Model_Tournament_and_MLflow.ipynb
+├── 05_Model_Registry_and_Export.ipynb
+├── app.py                 # Streamlit (all pages in one file)
+├── fastapi_app.py         # FastAPI backend
+├── requirements.txt
+├── README.md
+├── data/                  # Created locally (large JSONL / Parquet often gitignored)
+│   ├── *.jsonl
+│   ├── amazon_reviews.parquet/
+│   └── amazon_clean.parquet/
+├── mlruns/                # MLflow tracking (typically gitignored)
+└── exported_models/       # Optional export from Notebook 05 (typically gitignored)
+```
+
+## 8. Setup and Execution
 
 To run the full pipeline:
 
