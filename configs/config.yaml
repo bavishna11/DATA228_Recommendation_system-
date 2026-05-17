@@ -1,0 +1,15 @@
+data:
+  raw_dir: "data/raw"
+  raw_path: "data/raw/amazon_reviews.parquet"
+  processed_dir: "data/processed"
+  clean_path: "data/processed/amazon_clean.parquet/clean_data.parquet"
+  features_dir: "data/features"
+  features_path: "data/features/engineered_features.parquet"
+model:
+  experiment_name: "amazon_recommendation"
+  tracking_uri: "sqlite:///mlruns.db"
+  best_model_path: "models/als_recommendation_model"
+  feature_pipeline_path: "models/feature_pipeline"
+api:
+  host: "0.0.0.0"
+  port: 8000

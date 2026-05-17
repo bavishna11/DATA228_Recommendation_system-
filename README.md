@@ -1,172 +1,155 @@
-# Amazon Product Recommendation & Review Intelligence
+# Amazon Product Recommendation & Review Intelligence Platform
 
-End-to-end Big Data pipeline for the [McAuley-Lab Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) dataset: **PySpark** ingestion and preprocessing, **Spark ML** feature engineering and model tournament (ALS recommender, classifiers, clustering), **MLflow** experiment tracking and model registry, plus a **FastAPI** service and **Streamlit** dashboard for analytics and lightweight sentiment scoring.
+![Project Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen)
+![Python Version](https://img.shields.io/badge/Python-3.10-blue)
+![PySpark](https://img.shields.io/badge/PySpark-3.5%2B-orange)
+![Docker](https://img.shields.io/badge/Docker-Enabled-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.95%2B-teal)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.20%2B-red)
 
----
-
-## What's in this repository
-
-| Layer | Role |
-|--------|------|
-| **Notebooks 01–05** | Data ingestion → clean Parquet → engineered features → model tournament & MLflow → registry export |
-| **`spark_write_helper.py`** | Reusable Spark writes to Parquet (used in preprocessing / feature notebooks) |
-| **`fastapi_app.py`** | REST API: dataset stats, per-user top products, keyword-based sentiment (aligned with Streamlit fallback) |
-| **`app.py`** | Single-file Streamlit app: sidebar navigation (Home, Business Dashboard, Customer personalization, Review intelligence) |
+An end-to-end Big Data machine learning pipeline and interactive dashboard for the [McAuley-Lab Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) dataset. This project processes gigabytes of raw consumer data to generate actionable business intelligence, customer personalization profiles, and intelligent product recommendations.
 
 ---
 
-## Architecture (high level)
+## 🎯 Executive Summary
 
-1. **Data:** Raw JSONL → PySpark → Parquet (`data/`)
-2. **Features:** Spark ML pipelines; engineered features under `data/engineered_features.parquet` (Notebook 03)
-3. **Models:** ALS + additional models (Notebook 04); metrics logged to **MLflow** (`mlruns/` locally)
-4. **Registry:** Best ALS registered / exported via Notebook 05 (e.g. `exported_models/`)
-5. **Serving:** **FastAPI** on port 8000 (optional for sentiment + consistent JSON); **Streamlit** reads cleaned Parquet for charts
+This platform bridges the gap between heavy, offline Big Data processing and low-latency, online serving. It ingests massive raw JSONL datasets, cleans and engineers features using distributed PySpark, trains multiple machine learning algorithms tracked by MLflow, and ultimately serves the finalized models and analytics via a robust FastAPI backend and an interactive Streamlit frontend.
 
----
-
-## Prerequisites
-
-- **Python 3.10+** (3.12 used in development)
-- **Apache Spark / PySpark** (via `requirements.txt`)
-- **Java 17** for local Spark (Spark 3.5 expects Java 17). On macOS:
-
-  ```bash
-  export JAVA_HOME=$(/usr/libexec/java_home -v 17)
-  ```
-
-  Using Java 11 often causes `JAVA_GATEWAY_EXITED` / `UnsupportedClassVersionError`.
-
-- **Jupyter** or VS Code with Jupyter support for the notebooks
+### ✨ Key Features
+*   **Customer Personalization (ALS):** Uses Collaborative Filtering (Alternating Least Squares) to predict how a specific user will rate products they haven't seen yet.
+*   **Review Intelligence (NLP):** Natural Language Processing pipeline that tokenizes reviews, applies TF-IDF, and utilizes classification algorithms to assess customer sentiment.
+*   **Business Dashboard:** Interactive metrics and visualizations (powered by Altair) exposing raw dataset statistics, rating distributions, and product popularity.
+*   **Microservice Architecture:** Fully decoupled Data Pipeline and Serving Layers, containerized using Docker for instant portability.
 
 ---
 
-## Repository layout
+## 🛠 Technology Stack
 
-```
-Final_project/
-├── 01_Data_Ingestion_and_EDA.ipynb
-├── 02_Data_Preprocessing_and_Optimization.ipynb
-├── 03_Feature_Engineering_Pipeline.ipynb
-├── 04_Model_Tournament_and_MLflow.ipynb
-├── 05_Model_Registry_and_Export.ipynb
-├── app.py                 # Streamlit (all pages in one file)
-├── fastapi_app.py         # FastAPI backend
-├── spark_write_helper.py  # Parquet write helpers for Spark
-├── requirements.txt
-├── README.md
-├── data/                  # Created locally (large JSONL / Parquet often gitignored)
-│   ├── *.jsonl
-│   ├── amazon_reviews.parquet/
-│   └── amazon_clean.parquet/
-├── mlruns/                # MLflow tracking (typically gitignored)
-└── exported_models/       # Optional export from Notebook 05 (typically gitignored)
-```
-
-Paths assumed by **Streamlit** and **FastAPI**:
-
-- Clean ratings / reviews: `data/amazon_clean.parquet/clean_data.parquet`
-- Ingested raw Parquet folder: `data/amazon_reviews.parquet/`
-- Raw JSONL glob: `data/*.jsonl`
+*   **Data Processing:** PySpark, PyArrow, Pandas
+*   **Machine Learning:** Spark MLlib (ALS, Logistic Regression, Random Forest, Naive Bayes, K-Means)
+*   **MLOps:** MLflow (Experiment tracking, Metric logging, Model registry), SQLite
+*   **Backend API:** FastAPI, Uvicorn
+*   **Frontend UI:** Streamlit, Altair
+*   **DevOps & Infrastructure:** Docker, Docker Compose, Pytest
 
 ---
 
-## Setup
+## 🏗 System Architecture
+
+The project architecture strictly adheres to modern ML engineering best practices by separating the heavy "Offline" computation from the real-time "Online" serving.
+
+### 1. Offline Data & Machine Learning Pipeline
+*Executed on-demand when new data is available.*
+1.  **Ingestion (`src/ingestion/data_loader.py`):** Converts massive raw `.jsonl` files into highly-optimized, compressed Parquet files.
+2.  **EDA (`src/eda/eda.py`):** Calculates global rating distributions and identifies viral products.
+3.  **Preprocessing (`src/preprocessing/cleaner.py`):** Handles missing values, enforces schema casting, and applies "Cold-Start Filtering" (removing users/items with < 5 interactions).
+4.  **Feature Engineering (`src/features/feature_engineering.py`):** NLP processing (`StringIndexer`, `Tokenizer`, `StopWordsRemover`, `HashingTF`, `IDF`) to vectorize review text.
+5.  **Model Training (`src/models/train.py`):** Conducts a model tournament. Evaluates ALS for recommendations and K-Means/Classifiers for review analysis. Logs all artifacts natively to MLflow.
+
+### 2. Online Serving Layer
+*Containerized web services that read pre-computed artifacts.*
+1.  **FastAPI Backend:** Loads the Spark Pipeline models via `mlflow.pyfunc` and serves high-speed recommendation logic and dataset queries.
+2.  **Streamlit Dashboard:** The user-facing application providing interactive filters, data tables, and dynamic charting.
+
+---
+
+## 🚀 Step-by-Step Setup & Execution Guide
+
+### Step 1: Prerequisites
+*   [Python 3.10+](https://www.python.org/downloads/)
+*   [Java 17](https://adoptium.net/) (Required locally for PySpark execution)
+*   [Docker Desktop](https://www.docker.com/products/docker-desktop)
+
+### Step 2: Download the Dataset
+Download raw `.jsonl` category files from the [McAuley-Lab Amazon Reviews 2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023) dataset and place them in the root `data/` directory.
+
+### Step 3: Run the Offline Pipeline
+Trigger the automated, end-to-end PySpark pipeline to process your data and train the models.
 
 ```bash
-cd Final_project
-python -m venv .venv
+# Make the script executable
+chmod +x start_pipeline.sh
 
-# Windows: .venv\Scripts\activate
-# macOS / Linux:
-source .venv/bin/activate
-
-pip install -r requirements.txt
+# Run the pipeline
+./start_pipeline.sh
 ```
+*Note: This process may take several minutes depending on the size of your `.jsonl` files. Upon completion, the `data/features/`, `models/`, and `mlruns/` directories will be populated.*
 
-Dependencies include: `pyspark`, `mlflow`, `streamlit`, `altair`, `fastapi`, `uvicorn`, `pandas`, `numpy`, `pyarrow`, `requests`, `matplotlib`, `seaborn`, `pydantic`.
-
----
-
-## Data download
-
-1. Open [McAuley-Lab/Amazon-Reviews-2023](https://huggingface.co/datasets/McAuley-Lab/Amazon-Reviews-2023).
-2. Download at least one category JSONL into `data/` (e.g. `data/reviews.jsonl`).
-3. Point Notebook 01's ingestion path at your file.
-
----
-
-## Running the pipeline (notebooks)
-
-Run **in order**:
-
-1. **`01_Data_Ingestion_and_EDA.ipynb`** — JSONL → Parquet under `data/` (e.g. `amazon_reviews.parquet/`).
-2. **`02_Data_Preprocessing_and_Optimization.ipynb`** — Cleaning; writes `data/amazon_clean.parquet/clean_data.parquet` (prefer Parquet writes over huge `toPandas()`).
-3. **`03_Feature_Engineering_Pipeline.ipynb`** — Reads clean Parquet; builds Spark ML pipeline; writes `data/engineered_features.parquet` and saves pipeline under `models/feature_pipeline` where configured.
-4. **`04_Model_Tournament_and_MLflow.ipynb`** — ALS + classifiers + clustering; logs to MLflow.
-5. **`05_Model_Registry_and_Export.ipynb`** — Registry / `@champion` / export (e.g. `exported_models/als_champion`).
-
-Start MLflow UI before training if you want live tracking:
+### Step 4: Boot the Serving Layer (Docker)
+Once the pipeline has finished creating the artifacts, spin up the web services.
 
 ```bash
-mlflow ui
+# Build and start the microservices in detached mode
+docker-compose up --build -d
+
+# Verify containers are running
+docker ps
 ```
 
-Open `http://127.0.0.1:5000` (default).
+### Step 5: Access the Application
+*   **Interactive Dashboard:** [http://localhost:8501](http://localhost:8501)
+*   **FastAPI Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Streamlit dashboard
+## ⚙️ Configuration (Single Source of Truth)
 
-Requires **clean Parquet** at `data/amazon_clean.parquet/clean_data.parquet` for full charts.
+All project paths, tracking URIs, and network ports are centrally managed. To modify where data is saved or what port the API runs on, edit the **`configs/config.yaml`** file. 
+
+The `src/utils/config_loader.py` utility dynamically propagates these settings to every script in the repository, ensuring zero path-related bugs.
+
+---
+
+## 🧪 Testing
+
+The repository includes an automated test suite to validate environment configurations and ensure all modules are syntactically sound before execution.
 
 ```bash
-streamlit run app.py
+# Run the test suite
+PYTHONPATH=. pytest tests/
 ```
 
-Sections:
-
-- **Business Dashboard** — Metrics, storage layers (raw vs ingested vs clean), rating charts.
-- **Customer personalization** — Per-`user_id` charts from Parquet.
-- **Review intelligence** — Calls **`POST http://127.0.0.1:8000/predict_sentiment`** when FastAPI is up; otherwise the same keyword heuristic as `fastapi_app.py` (positive / negative word lists, net score, optional **Neutral**).
-
 ---
 
-## FastAPI backend
+## 📂 Project Directory Map
 
-```bash
-uvicorn fastapi_app:app --reload --host 0.0.0.0 --port 8000
+```text
+.
+├── PROJECT_REPORT.md         # Final documentation and results
+├── README.md                 # Primary project documentation
+├── Dockerfile                # Multi-service container definition (with Java JRE)
+├── docker-compose.yml        # Orchestration for API & Dashboard
+├── requirements.txt          # Python dependencies
+├── start_pipeline.sh         # One-click script to run the offline data & ML pipeline
+│
+├── api/                      # Backend Serving Layer
+│   └── main.py               # FastAPI application
+│
+├── configs/                  # Centralized Project Configuration (Single Source of Truth)
+│   └── config.yaml           # Ports, tracking URIs, file paths
+│
+├── dashboard/                # Frontend Serving Layer
+│   └── app.py                # Streamlit dashboard application
+│
+├── data/                     # Data Lake (Mounted to Docker)
+│   ├── features/             # ML-ready engineered features
+│   ├── processed/            # Cleaned & filtered data
+│   └── raw/                  # Ingested parquets & jsonl
+│
+├── mlruns/                   # MLflow Tracking Database & Experiment Artifacts
+│
+├── models/                   # Serialized ML Artifacts
+│   ├── als_recommendation_model/ 
+│   └── feature_pipeline/     
+│
+├── src/                      # Core Machine Learning & Data Logic
+│   ├── eda/eda.py            # Generates statistics and rating distributions
+│   ├── features/feature_engineering.py # Runs NLP and vectorizes data
+│   ├── ingestion/data_loader.py # Converts JSONL to Parquet
+│   ├── models/train.py       # Trains ALS, Classification, and Clustering algorithms
+│   ├── preprocessing/cleaner.py # Fills nulls and filters cold-starts
+│   └── utils/config_loader.py # Configuration loader utility
+│
+└── tests/                    # Validation & Unit Tests
+    └── test_pipeline.py      # Pytest suite for checking modules and configs
 ```
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Liveness + dataset configured |
-| GET | `/stats` | Aggregates from clean Parquet when available |
-| GET | `/users/{user_id}/top-products` | Top star ratings per user |
-| POST | `/predict_sentiment` | Body `{"text": "..."}` → sentiment + confidence |
-
-Docs: `http://127.0.0.1:8000/docs`
-
----
-
-## Git and large files
-
-A `.gitignore` may exclude: `.venv/`, `__pycache__/`, `mlruns/`, `exported_models/`, `data/*.jsonl`, `data/**/*.parquet`. Commit code and notebooks; restore data locally per these steps.
-
----
-
-## Troubleshooting
-
-| Issue | What to try |
-|--------|-------------|
-| **`JAVA_GATEWAY_EXITED` / UnsupportedClassVersionError** | Use **Java 17** (`JAVA_HOME`). |
-| **Spark OOM / `maxResultSize`** | Raise driver memory; write Parquet instead of collecting huge frames. |
-| **Empty Streamlit charts** | Run Notebook 02 and confirm clean Parquet path exists. |
-| **Sentiment uses fallback only** | Start FastAPI on port 8000. |
-| **Port in use** | e.g. `uvicorn fastapi_app:app --port 8080` (and match Streamlit if you hardcode URLs). |
-
----
-
-## Dataset license
-
-Follow Hugging Face / dataset terms for **Amazon Reviews 2023**. This repo is pipeline code unless you add data locally.

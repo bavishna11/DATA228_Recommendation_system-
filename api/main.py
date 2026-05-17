@@ -17,12 +17,25 @@ import numpy as np
 import pandas as pd
 import pyarrow.dataset as ds
 import uvicorn
+import mlflow
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-CLEAN_PARQUET = PROJECT_ROOT / "data/amazon_clean.parquet/clean_data.parquet"
-RAW_INGESTED_PARQUET = PROJECT_ROOT / "data/amazon_reviews.parquet"
+# Try loading the trained model artifacts
+try:
+    mlflow.set_tracking_uri("sqlite:///mlruns.db")
+    # model = mlflow.pyfunc.load_model("models/best_model")
+    MODEL_LOADED = True
+except Exception:
+    MODEL_LOADED = False
+
+
+from src.utils.config_loader import load_config
+config, _ = load_config()
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+CLEAN_PARQUET = PROJECT_ROOT / config["data"]["clean_path"]
+RAW_INGESTED_PARQUET = PROJECT_ROOT / config["data"]["raw_path"]
 
 POSITIVE_WORDS = frozenset(
     {

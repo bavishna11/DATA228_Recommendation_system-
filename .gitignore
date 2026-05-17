@@ -1,0 +1,30 @@
+# Data
+data/
+*.parquet
+*.jsonl
+*.csv
+
+# ML Artifacts
+models/
+mlruns/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.env
+
+# Spark
+spark-warehouse/
+derby.log
+metastore_db/
+
+# OS/System
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+.ipynb_checkpoints/
