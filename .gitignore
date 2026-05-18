@@ -1,12 +1,12 @@
 # Data
-data/
+/data/
 *.parquet
 *.jsonl
 *.csv
 
 # ML Artifacts
-models/
-mlruns/
+/models/
+/mlruns/
 *.db
 
 # Python
