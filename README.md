@@ -98,16 +98,21 @@ All project paths, tracking URIs, and network ports are centrally managed. To mo
 
 The `src/utils/config_loader.py` utility dynamically propagates these settings to every script in the repository, ensuring zero path-related bugs.
 
+
 ---
 
-## 🧪 Testing
+## 🧪 Testing & CI/CD
 
-The repository includes an automated test suite to validate environment configurations and ensure all modules are syntactically sound before execution.
+This project includes a robust testing suite and a Continuous Integration pipeline.
 
+### Running Tests Locally
+We use `pytest` to validate both our configuration setup and our FastAPI backend logic:
 ```bash
-# Run the test suite
-PYTHONPATH=. pytest tests/
+PYTHONPATH=. pytest tests/ -v
 ```
+
+### GitHub Actions
+A GitHub Actions workflow is included (`.github/workflows/python-app.yml`). It automatically installs dependencies and runs the test suite on every `push` and `pull_request` to the main branch.
 
 ---
 
@@ -115,8 +120,12 @@ PYTHONPATH=. pytest tests/
 
 ```text
 .
+├── .github/workflows/        # CI/CD Pipeline
+│   └── python-app.yml        # GitHub Actions: auto-runs tests on push/PR
+│
 ├── PROJECT_REPORT.md         # Final documentation and results
 ├── README.md                 # Primary project documentation
+├── RUN_EVIDENCE.md           # Pipeline run evidence and metrics
 ├── Dockerfile                # Multi-service container definition (with Java JRE)
 ├── docker-compose.yml        # Orchestration for API & Dashboard
 ├── requirements.txt          # Python dependencies
@@ -131,7 +140,7 @@ PYTHONPATH=. pytest tests/
 ├── dashboard/                # Frontend Serving Layer
 │   └── app.py                # Streamlit dashboard application
 │
-├── data/                     # Data Lake (Mounted to Docker)
+├── data/                     # Local Data Storage (Mounted to Docker)
 │   ├── features/             # ML-ready engineered features
 │   ├── processed/            # Cleaned & filtered data
 │   └── raw/                  # Ingested parquets & jsonl
@@ -151,5 +160,6 @@ PYTHONPATH=. pytest tests/
 │   └── utils/config_loader.py # Configuration loader utility
 │
 └── tests/                    # Validation & Unit Tests
-    └── test_pipeline.py      # Pytest suite for checking modules and configs
+    ├── test_api.py            # FastAPI endpoint unit tests
+    └── test_pipeline.py       # Pytest suite for checking modules and configs
 ```

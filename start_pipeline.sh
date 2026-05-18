@@ -3,6 +3,8 @@ set -e
 
 echo "Running end-to-end pipeline..."
 
+export PYTHONPATH=.
+
 # 1. Data Ingestion & Profiling
 python src/ingestion/data_loader.py
 python src/eda/eda.py

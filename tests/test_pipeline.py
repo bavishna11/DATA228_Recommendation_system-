@@ -13,7 +13,7 @@ def test_config_loads():
     assert "model" in config
     assert "api" in config
     
-    assert config["data"]["raw_path"] == "data/amazon_reviews.parquet"
+    assert config["data"]["raw_path"] == "data/raw/amazon_reviews.parquet"
     assert config["model"]["experiment_name"] == "amazon_recommendation"
 
 def test_pipeline_modules_importable():

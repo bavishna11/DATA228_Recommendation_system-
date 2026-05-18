@@ -44,32 +44,32 @@ graph TD
 
 ## 3. Data Processing & Feature Engineering Pipeline
 
-The data pipeline is organized sequentially across multiple Jupyter Notebooks to enforce modularity and reproducibility.
+The data pipeline is implemented as a modular set of Python scripts under `src/`, orchestrated by `start_pipeline.sh`.
 
-### 3.1 Data Ingestion and EDA (`01_Data_Ingestion_and_EDA.ipynb`)
-- **Action**: Reads massive JSONL streams using PySpark.
-- **Outcome**: Outputs the initial `amazon_reviews.parquet` directory. It also includes exploratory data analysis (EDA) to understand distributions of ratings, missing values, and review lengths.
+### 3.1 Data Ingestion and EDA (`src/ingestion/data_loader.py`, `src/eda/eda.py`)
+- **Action**: Reads massive JSONL streams using PySpark and converts them to Parquet.
+- **Outcome**: Outputs the initial `data/raw/amazon_reviews.parquet` directory. EDA calculates global rating distributions and identifies viral products.
 
-### 3.2 Data Preprocessing and Optimization (`02_Data_Preprocessing_and_Optimization.ipynb`)
+### 3.2 Data Preprocessing and Optimization (`src/preprocessing/cleaner.py`)
 - **Action**: Cleanses the data by handling null values, deduplicating records, and casting data types correctly.
-- **Optimization**: Writes the clean data to a compressed Parquet format (`clean_data.parquet`), avoiding memory bottlenecks commonly associated with converting large Spark DataFrames to Pandas.
+- **Optimization**: Applies Cold-Start Filtering (minimum 5 reviews per user and product). Writes the clean data to a compressed Parquet format (`data/processed/amazon_clean.parquet/clean_data.parquet`).
 
-### 3.3 Feature Engineering (`03_Feature_Engineering_Pipeline.ipynb`)
+### 3.3 Feature Engineering (`src/features/feature_engineering.py`)
 - **Action**: Constructs the `Spark ML` pipelines.
 - **NLP Processing**: Extracts the `text` column (review body) to generate Natural Language Processing (NLP) features. This involves tokenization, stop-word removal, and vectorization (e.g., TF-IDF).
 - **Categorical Encoding**: Transforms string-based user IDs and product IDs into numeric indices required by the ALS algorithm.
-- **Outcome**: Saves the engineered dataset and the trained `Spark ML` feature pipeline for reuse.
+- **Outcome**: Saves the engineered dataset and the trained `Spark ML` feature pipeline to `models/feature_pipeline`.
 
 ---
 
 ## 4. Machine Learning & Model Tournament
 
-The project utilizes a "Tournament" approach to evaluate multiple model architectures simultaneously (`04_Model_Tournament_and_MLflow.ipynb`).
+The project utilizes a "Tournament" approach to evaluate multiple model architectures simultaneously (`src/models/train.py`).
 
 ### 4.1 Collaborative Filtering (Recommendation)
 - **Model**: Alternating Least Squares (ALS).
 - **Mechanism**: Matrix factorization technique suited for implicit/explicit feedback. It decomposes the user-item interaction matrix into lower-dimensional dense vectors to predict missing user ratings for products.
-- **Evaluation**: RMSE (Root Mean Square Error) and precision metrics.
+- **Evaluation**: RMSE (Root Mean Square Error) on a held-out test set.
 
 ### 4.2 Classification Models (Sentiment & Review Intelligence)
 - Evaluated models: **Logistic Regression (LR)**, **Random Forest (RF)**, and **Naive Bayes (NB)**.
@@ -82,19 +82,20 @@ The project utilizes a "Tournament" approach to evaluate multiple model architec
 ### 4.4 Experiment Tracking (MLflow)
 - Every run within the tournament is logged using **MLflow**.
 - Metrics, hyperparameters, and model artifacts are tracked.
-- **Notebook 05 (`05_Model_Registry_and_Export.ipynb`)** evaluates the MLflow registry, tags the best-performing ALS model as the `@champion`, and exports it for production serving (e.g., `exported_models/als_champion`).
+- The best-performing ALS model is exported for production serving to `models/als_recommendation_model`.
 
 ---
 
 ## 5. Deployment & User Interface
 
-### 5.1 FastAPI Backend (`fastapi_app.py`)
+### 5.1 FastAPI Backend (`api/main.py`)
 Provides RESTful endpoints for scalable model serving and data querying.
+- `GET /health`: Health check endpoint.
 - `GET /stats`: Retrieves aggregate dataset statistics from the clean Parquet files.
 - `GET /users/{user_id}/top-products`: Returns the highest-rated products for a specific user.
-- `POST /predict_sentiment`: Accepts raw review text and returns a sentiment score and confidence metric, acting as a lightweight NLP serving layer.
+- `POST /predict_sentiment`: Accepts raw review text and returns a sentiment score and confidence metric.
 
-### 5.2 Streamlit Dashboard (`app.py`)
+### 5.2 Streamlit Dashboard (`dashboard/app.py`)
 A comprehensive, interactive UI for business intelligence and user personalization.
 - **Business Dashboard**: Visualizes KPI metrics, storage layer comparisons, rating distributions, and review volume over time using Altair charts.
 - **Customer Personalization**: Displays a specific user's historical review timeline, rating distribution, and top-rated products.
@@ -102,7 +103,14 @@ A comprehensive, interactive UI for business intelligence and user personalizati
 
 ---
 
-## 6. Technologies Used
+## 6. Testing & CI/CD
+
+- **Automated Test Suite**: `tests/test_pipeline.py` validates config loading, module imports, and directory structure. `tests/test_api.py` unit tests the FastAPI endpoints (health, sentiment analysis).
+- **GitHub Actions**: `.github/workflows/python-app.yml` runs the test suite on every push/PR to the `main` branch.
+
+---
+
+## 7. Technologies Used
 
 | Category | Technology |
 | :--- | :--- |
@@ -113,11 +121,12 @@ A comprehensive, interactive UI for business intelligence and user personalizati
 | **Experiment Tracking**| MLflow |
 | **Backend API** | FastAPI, Uvicorn |
 | **Frontend/Dashboard** | Streamlit, Altair, Pandas |
+| **DevOps** | Docker, Docker Compose, GitHub Actions, Pytest |
 | **Data Source** | Hugging Face (McAuley-Lab/Amazon-Reviews-2023) |
 
 ---
 
-## 7. Setup and Execution
+## 8. Setup and Execution
 
 To run the full pipeline:
 
@@ -127,15 +136,18 @@ To run the full pipeline:
     source .venv/bin/activate
     pip install -r requirements.txt
     ```
-2. **Execute Notebooks sequentially**: Run Notebooks `01` through `05` to ingest data, engineer features, train models, and export the champion model.
-3. **Start the API**:
+2. **Run the Offline Pipeline**:
     ```bash
-    uvicorn fastapi_app:app --reload --host 0.0.0.0 --port 8000
+    chmod +x start_pipeline.sh
+    ./start_pipeline.sh
     ```
-4. **Launch the Dashboard**:
+3. **Boot the Serving Layer (Docker)**:
     ```bash
-    streamlit run app.py
+    docker-compose up --build -d
     ```
+4. **Access the Application**:
+    - **Interactive Dashboard:** http://localhost:8501
+    - **FastAPI Swagger UI:** http://localhost:8000/docs
 
 ---
 
