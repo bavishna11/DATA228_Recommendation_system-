@@ -242,5 +242,23 @@ All paths, ports, and URIs are centrally managed in **`configs/config.yaml`**. T
 ```
 
 ---
+## 💼 Skills Demonstrated
 
+- Big Data Processing
+- Distributed Computing
+- Machine Learning Pipelines
+- NLP & Recommendation Systems
+- Docker & CI/CD
+- REST API Development
+- Data Engineering
+- MLOps & Experiment Tracking
+
+---
+## 🧠 Challenges & Learnings
+
+- Handling large-scale JSONL ingestion efficiently
+- Managing Spark memory optimization
+- Solving cold-start filtering issues
+- Containerizing PySpark applications with Java dependencies
+- Integrating MLflow tracking into a distributed workflow
 
