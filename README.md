@@ -243,4 +243,4 @@ All paths, ports, and URIs are centrally managed in **`configs/config.yaml`**. T
 
 ---
 
-*This document serves as both the project README and the DATA 228 final project report, covering architecture, implementation, results, and deployment of a scalable recommendation and analytics pipeline.*
+
